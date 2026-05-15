@@ -6,10 +6,21 @@ import { useTranslations } from 'next-intl';
 import { FileText, MessageSquare, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
-import { highlightMatches, type SearchResult } from '@/lib/search-utils';
+import { highlightMatches } from '@/lib/search-utils';
+
+interface SearchResultItem {
+  id: number;
+  type: string;
+  title: string;
+  excerpt: string;
+  breadcrumb: string;
+  url: string;
+  matchedIn: ('title' | 'content' | 'comment')[];
+  relevanceScore: number;
+}
 
 interface SearchResultCardProps {
-  result: SearchResult;
+  result: SearchResultItem;
   query: string;
   index: number;
 }

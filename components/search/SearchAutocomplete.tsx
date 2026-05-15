@@ -4,16 +4,16 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Search, Clock, TrendingUp, FileText, ArrowRight } from 'lucide-react';
+import { Search, Clock, FileText, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { searchArticles as searchArticlesApi } from '@/lib/api';
 import {
-  getSearchSuggestions,
   getRecentSearches,
   clearRecentSearches,
   saveRecentSearch,
-  popularSearches,
   type SearchSuggestion,
 } from '@/lib/search-utils';
+import type { Locale } from '@/types';
 
 interface SearchAutocompleteProps {
   query: string;
@@ -39,14 +39,40 @@ export function SearchAutocomplete({
   const router = useRouter();
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Load suggestions
   useEffect(() => {
-    if (isOpen) {
-      const results = getSearchSuggestions(query, locale);
-      setSuggestions(results);
-      setRecentSearches(getRecentSearches());
-      setSelectedIndex(-1);
+    if (!isOpen) return;
+
+    setRecentSearches(getRecentSearches());
+    setSelectedIndex(-1);
+
+    if (!query.trim()) {
+      setSuggestions([]);
+      return;
     }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await searchArticlesApi({ query, limit: 6 }, locale as Locale);
+        if (!controller.signal.aborted) {
+          setSuggestions(
+            response.data.map(item => ({
+              type: 'article' as const,
+              text: item.title,
+              url: `/${locale}${item.path}`,
+              articleNumber: item.title.split('-modda')[0] || '',
+            }))
+          );
+        }
+      } catch {
+        if (!controller.signal.aborted) setSuggestions([]);
+      }
+    }, 300);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
   }, [query, locale, isOpen]);
 
   // Keyboard navigation
@@ -54,9 +80,8 @@ export function SearchAutocomplete({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
 
-      const totalItems = query.trim()
-        ? suggestions.length
-        : recentSearches.length + Math.min(4, popularSearches.length);
+      const totalItems = query.trim() ? suggestions.length : recentSearches.length;
+      if (totalItems === 0) return;
 
       switch (e.key) {
         case 'ArrowDown':
@@ -73,11 +98,7 @@ export function SearchAutocomplete({
             if (query.trim() && suggestions[selectedIndex]) {
               onSelect(suggestions[selectedIndex]);
             } else {
-              // Handle recent or popular search
-              const item =
-                selectedIndex < recentSearches.length
-                  ? recentSearches[selectedIndex]
-                  : popularSearches[selectedIndex - recentSearches.length];
+              const item = recentSearches[selectedIndex];
               if (item) {
                 saveRecentSearch(item);
                 router.push(`/${locale}/search?q=${encodeURIComponent(item)}`);
@@ -188,71 +209,40 @@ export function SearchAutocomplete({
           )}
         </div>
       ) : (
-        // Recent + Popular searches
-        <div className="py-1.5 sm:py-2">
-          {/* Recent Searches */}
-          {recentSearches.length > 0 && (
-            <div className="mb-1.5 sm:mb-2">
-              <div className="flex items-center justify-between px-3 py-1.5 sm:px-4 sm:py-2">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-text-muted sm:text-xs">
-                  {t('search.recentSearches')}
-                </p>
-                <button
-                  onClick={handleClearRecent}
-                  className="text-[10px] text-primary-600 hover:text-primary-700 sm:text-xs"
-                >
-                  {t('search.clear')}
-                </button>
-              </div>
-              {recentSearches.map((text, index) => (
-                <button
-                  key={`recent-${index}`}
-                  onClick={() => {
-                    saveRecentSearch(text);
-                    router.push(`/${locale}/search?q=${encodeURIComponent(text)}`);
-                    onClose();
-                  }}
-                  className={cn(
-                    'flex w-full items-center gap-2 px-3 py-2 text-left sm:gap-3 sm:px-4 sm:py-2.5',
-                    'transition-colors hover:bg-primary-50',
-                    selectedIndex === index && 'bg-primary-50'
-                  )}
-                >
-                  <Clock className="h-3.5 w-3.5 flex-shrink-0 text-text-muted sm:h-4 sm:w-4" />
-                  <span className="truncate text-xs text-text-primary sm:text-sm">{text}</span>
-                </button>
-              ))}
+        // Recent searches only
+        recentSearches.length > 0 && (
+          <div className="py-1.5 sm:py-2">
+            <div className="flex items-center justify-between px-3 py-1.5 sm:px-4 sm:py-2">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-text-muted sm:text-xs">
+                {t('search.recentSearches')}
+              </p>
+              <button
+                onClick={handleClearRecent}
+                className="text-[10px] text-primary-600 hover:text-primary-700 sm:text-xs"
+              >
+                {t('search.clear')}
+              </button>
             </div>
-          )}
-
-          {/* Popular Searches */}
-          <div>
-            <p className="px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-text-muted sm:px-4 sm:py-2 sm:text-xs">
-              {t('search.popularSearches')}
-            </p>
-            {popularSearches.slice(0, 4).map((text, index) => {
-              const itemIndex = recentSearches.length + index;
-              return (
-                <button
-                  key={`popular-${index}`}
-                  onClick={() => {
-                    saveRecentSearch(text);
-                    router.push(`/${locale}/search?q=${encodeURIComponent(text)}`);
-                    onClose();
-                  }}
-                  className={cn(
-                    'flex w-full items-center gap-2 px-3 py-2 text-left sm:gap-3 sm:px-4 sm:py-2.5',
-                    'transition-colors hover:bg-primary-50',
-                    selectedIndex === itemIndex && 'bg-primary-50'
-                  )}
-                >
-                  <TrendingUp className="h-3.5 w-3.5 flex-shrink-0 text-accent-amber sm:h-4 sm:w-4" />
-                  <span className="truncate text-xs text-text-primary sm:text-sm">{text}</span>
-                </button>
-              );
-            })}
+            {recentSearches.map((text, index) => (
+              <button
+                key={`recent-${index}`}
+                onClick={() => {
+                  saveRecentSearch(text);
+                  router.push(`/${locale}/search?q=${encodeURIComponent(text)}`);
+                  onClose();
+                }}
+                className={cn(
+                  'flex w-full items-center gap-2 px-3 py-2 text-left sm:gap-3 sm:px-4 sm:py-2.5',
+                  'transition-colors hover:bg-primary-50',
+                  selectedIndex === index && 'bg-primary-50'
+                )}
+              >
+                <Clock className="h-3.5 w-3.5 flex-shrink-0 text-text-muted sm:h-4 sm:w-4" />
+                <span className="truncate text-xs text-text-primary sm:text-sm">{text}</span>
+              </button>
+            ))}
           </div>
-        </div>
+        )
       )}
     </div>
   );

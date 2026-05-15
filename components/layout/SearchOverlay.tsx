@@ -7,6 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, ArrowRight, FileText, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui';
+import { searchArticles as searchArticlesApi } from '@/lib/api';
+import { getRecentSearches, saveRecentSearch } from '@/lib/search-utils';
+import type { Locale } from '@/types';
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -14,15 +17,10 @@ interface SearchOverlayProps {
   locale: string;
 }
 
-// Mock recent searches - in production, use localStorage or API
-const recentSearches = ['Mehnat shartnomasi', 'Ish haqi', 'Dam olish', 'Kasaba uyushmasi'];
-
-// Mock quick results - in production, fetch from API
-const quickResults = [
-  { id: '1', title: 'Modda 1. Mehnat qonunchiligi', chapter: 1 },
-  { id: '7', title: 'Modda 7. Mehnat shartnomasi tushunchasi', chapter: 3 },
-  { id: '15', title: 'Modda 15. Ish vaqti', chapter: 5 },
-];
+interface QuickResult {
+  id: number;
+  title: string;
+}
 
 export function SearchOverlay({ isOpen, onClose, locale }: SearchOverlayProps) {
   const t = useTranslations();
@@ -30,13 +28,37 @@ export function SearchOverlay({ isOpen, onClose, locale }: SearchOverlayProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [quickResults, setQuickResults] = useState<QuickResult[]>([]);
 
-  // Focus input when opened
   useEffect(() => {
-    if (isOpen && inputRef.current) {
+    if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
+      setRecentSearches(getRecentSearches());
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!query.trim() || !isOpen) {
+      setQuickResults([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await searchArticlesApi({ query, limit: 3 }, locale as Locale);
+        if (!controller.signal.aborted) {
+          setQuickResults(res.data.map(r => ({ id: r.id, title: r.title })));
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 300);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [query, locale, isOpen]);
 
   // Handle escape key
   useEffect(() => {
@@ -60,12 +82,12 @@ export function SearchOverlay({ isOpen, onClose, locale }: SearchOverlayProps) {
     if (!query.trim()) return;
 
     setIsSearching(true);
-    // Navigate to search results
-    router.push(`/${locale}/articles?q=${encodeURIComponent(query)}`);
+    saveRecentSearch(query.trim());
+    router.push(`/${locale}/search?q=${encodeURIComponent(query.trim())}`);
     onClose();
   };
 
-  const handleQuickSelect = (articleId: string) => {
+  const handleQuickSelect = (articleId: number) => {
     router.push(`/${locale}/articles/${articleId}`);
     onClose();
   };
@@ -157,57 +179,58 @@ export function SearchOverlay({ isOpen, onClose, locale }: SearchOverlayProps) {
               {/* Search Suggestions */}
               <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-6 sm:gap-6 md:grid-cols-2">
                 {/* Recent Searches */}
-                <div>
-                  <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold text-text-secondary sm:mb-3 sm:text-sm">
-                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    So'nggi qidiruvlar
-                  </h3>
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                    {recentSearches.map((search, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setQuery(search)}
-                        className={cn(
-                          'rounded-lg px-2.5 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm',
-                          'bg-gov-light text-text-secondary',
-                          'hover:bg-primary-50 hover:text-primary-800',
-                          'transition-colors duration-200'
-                        )}
-                      >
-                        {search}
-                      </button>
-                    ))}
+                {recentSearches.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold text-text-secondary sm:mb-3 sm:text-sm">
+                      <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      {t('search.recentSearches')}
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                      {recentSearches.map((search, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setQuery(search)}
+                          className={cn(
+                            'rounded-lg px-2.5 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm',
+                            'bg-gov-light text-text-secondary',
+                            'hover:bg-primary-50 hover:text-primary-800',
+                            'transition-colors duration-200'
+                          )}
+                        >
+                          {search}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Quick Results */}
-                <div>
-                  <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold text-text-secondary sm:mb-3 sm:text-sm">
-                    <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    Tez havolalar
-                  </h3>
-                  <div className="space-y-1.5 sm:space-y-2">
-                    {quickResults.map(result => (
-                      <button
-                        key={result.id}
-                        onClick={() => handleQuickSelect(result.id)}
-                        className={cn(
-                          'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left sm:gap-3 sm:px-3 sm:py-2',
-                          'group hover:bg-primary-50',
-                          'transition-colors duration-200'
-                        )}
-                      >
-                        <span className="flex-shrink-0 rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-800 sm:px-2 sm:text-xs">
-                          Bob {result.chapter}
-                        </span>
-                        <span className="min-w-0 truncate text-xs text-text-primary group-hover:text-primary-800 sm:text-sm">
-                          {result.title}
-                        </span>
-                        <ArrowRight className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-text-muted group-hover:text-primary-600 sm:h-4 sm:w-4" />
-                      </button>
-                    ))}
+                {quickResults.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold text-text-secondary sm:mb-3 sm:text-sm">
+                      <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      {t('search.articles')}
+                    </h3>
+                    <div className="space-y-1.5 sm:space-y-2">
+                      {quickResults.map(result => (
+                        <button
+                          key={result.id}
+                          onClick={() => handleQuickSelect(result.id)}
+                          className={cn(
+                            'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left sm:gap-3 sm:px-3 sm:py-2',
+                            'group hover:bg-primary-50',
+                            'transition-colors duration-200'
+                          )}
+                        >
+                          <span className="min-w-0 truncate text-xs text-text-primary group-hover:text-primary-800 sm:text-sm">
+                            {result.title}
+                          </span>
+                          <ArrowRight className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-text-muted group-hover:text-primary-600 sm:h-4 sm:w-4" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Keyboard Shortcut Hint - Hidden on mobile */}

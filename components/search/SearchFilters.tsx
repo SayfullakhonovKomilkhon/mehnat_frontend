@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Filter, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui';
-import { sections, chapters, getLocalizedText } from '@/lib/mock-data';
-import type { SearchFilters as SearchFiltersType } from '@/lib/search-utils';
+import { getSections, getChapters, getLocalizedText } from '@/lib/api';
+import type { SearchFilters as SearchFiltersType, Section, Chapter, Locale } from '@/types';
 
 interface SearchFiltersProps {
   filters: SearchFiltersType;
@@ -23,17 +23,27 @@ export function SearchFiltersPanel({
 }: SearchFiltersProps) {
   const t = useTranslations();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
 
-  // Get chapters for selected section
-  const availableChapters = filters.section
-    ? chapters.filter(c => c.sectionId === filters.section)
-    : chapters;
+  useEffect(() => {
+    getSections(locale as Locale).then(setSections);
+  }, [locale]);
 
-  // Count active filters
+  useEffect(() => {
+    if (filters.sectionId) {
+      getChapters({ sectionId: filters.sectionId }, locale as Locale).then(setChapters);
+    } else {
+      setChapters([]);
+    }
+  }, [filters.sectionId, locale]);
+
+  const availableChapters = chapters;
+
   const activeFilterCount = [
     filters.type !== 'all',
-    filters.section,
-    filters.chapter,
+    filters.sectionId,
+    filters.chapterId,
     filters.language,
   ].filter(Boolean).length;
 
@@ -41,14 +51,14 @@ export function SearchFiltersPanel({
     onFiltersChange({ ...filters, type });
   };
 
-  const handleSectionChange = (sectionId: string) => {
-    const section = sectionId ? parseInt(sectionId) : undefined;
-    onFiltersChange({ ...filters, section, chapter: undefined });
+  const handleSectionChange = (id: string) => {
+    const sectionId = id ? parseInt(id) : undefined;
+    onFiltersChange({ ...filters, sectionId, chapterId: undefined });
   };
 
-  const handleChapterChange = (chapterId: string) => {
-    const chapter = chapterId ? parseInt(chapterId) : undefined;
-    onFiltersChange({ ...filters, chapter });
+  const handleChapterChange = (id: string) => {
+    const chapterId = id ? parseInt(id) : undefined;
+    onFiltersChange({ ...filters, chapterId });
   };
 
   const handleLanguageChange = (language: string) => {
@@ -132,7 +142,7 @@ export function SearchFiltersPanel({
                 {t('article.section')}
               </label>
               <select
-                value={filters.section || ''}
+                value={filters.sectionId || ''}
                 onChange={e => handleSectionChange(e.target.value)}
                 className={cn(
                   'h-9 w-full rounded-lg px-2.5 sm:h-10 sm:px-3',
@@ -142,9 +152,9 @@ export function SearchFiltersPanel({
                 )}
               >
                 <option value="">{t('article.allSections')}</option>
-                {sections.map(section => (
-                  <option key={section.id} value={section.id}>
-                    {section.number}. {getLocalizedText(section.title, locale)}
+                {sections.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.number}. {getLocalizedText(s.title, locale)}
                   </option>
                 ))}
               </select>
@@ -156,7 +166,7 @@ export function SearchFiltersPanel({
                 {t('article.chapter')}
               </label>
               <select
-                value={filters.chapter || ''}
+                value={filters.chapterId || ''}
                 onChange={e => handleChapterChange(e.target.value)}
                 className={cn(
                   'h-9 w-full rounded-lg px-2.5 sm:h-10 sm:px-3',
@@ -166,10 +176,10 @@ export function SearchFiltersPanel({
                 )}
               >
                 <option value="">{t('article.allChapters')}</option>
-                {availableChapters.map(chapter => (
-                  <option key={chapter.id} value={chapter.id}>
-                    {chapter.number}-{t('article.chapter').toLowerCase()}.{' '}
-                    {getLocalizedText(chapter.title, locale)}
+                {availableChapters.map(ch => (
+                  <option key={ch.id} value={ch.id}>
+                    {ch.number}-{t('article.chapter').toLowerCase()}.{' '}
+                    {getLocalizedText(ch.title, locale)}
                   </option>
                 ))}
               </select>

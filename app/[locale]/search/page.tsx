@@ -1,22 +1,30 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Search, ChevronRight, FileText, ArrowLeft } from 'lucide-react';
 import { SearchResultCard, SearchFiltersPanel } from '@/components/search';
 import { Button, Breadcrumb } from '@/components/ui';
-import {
-  searchArticles,
-  saveRecentSearch,
-  type SearchFilters,
-  type SearchResult,
-} from '@/lib/search-utils';
+import { searchArticles as searchArticlesApi } from '@/lib/api';
+import { saveRecentSearch } from '@/lib/search-utils';
+import type { SearchResult, SearchFilters, Locale } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface SearchPageProps {
   params: { locale: string };
+}
+
+interface DisplayResult {
+  id: number;
+  type: 'article' | 'section' | 'chapter';
+  title: string;
+  excerpt: string;
+  breadcrumb: string;
+  url: string;
+  matchedIn: ('title' | 'content' | 'comment')[];
+  relevanceScore: number;
 }
 
 export default function SearchPage({ params: { locale } }: SearchPageProps) {
@@ -25,38 +33,69 @@ export default function SearchPage({ params: { locale } }: SearchPageProps) {
   const query = searchParams.get('q') || '';
 
   const [filters, setFilters] = useState<SearchFilters>({ type: 'all' });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [results, setResults] = useState<DisplayResult[]>([]);
 
-  // Save search to recent
+  const performSearch = useCallback(async () => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await searchArticlesApi(
+        {
+          query,
+          filters: {
+            sectionId: filters.sectionId,
+            chapterId: filters.chapterId,
+          },
+          limit: 50,
+        },
+        locale as Locale
+      );
+
+      const mapped: DisplayResult[] = response.data.map(item => ({
+        id: item.id,
+        type: item.type || 'article',
+        title: item.title,
+        excerpt: item.excerpt,
+        breadcrumb: item.breadcrumb,
+        url: `/${locale}${item.path}`,
+        matchedIn: item.matchedIn,
+        relevanceScore: item.relevanceScore,
+      }));
+
+      setResults(mapped);
+    } catch {
+      setResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [query, filters, locale]);
+
+  // Save search to recent + trigger search
   useEffect(() => {
     if (query) {
       saveRecentSearch(query);
     }
-    // Simulate loading
-    setIsLoading(true);
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, [query]);
+    performSearch();
+  }, [query, performSearch]);
 
   // Parse filters from URL
   useEffect(() => {
     const type = (searchParams.get('type') as SearchFilters['type']) || 'all';
-    const section = searchParams.get('section')
+    const sectionId = searchParams.get('section')
       ? parseInt(searchParams.get('section')!)
       : undefined;
-    const chapter = searchParams.get('chapter')
+    const chapterId = searchParams.get('chapter')
       ? parseInt(searchParams.get('chapter')!)
       : undefined;
     const language = (searchParams.get('language') as SearchFilters['language']) || undefined;
 
-    setFilters({ type, section, chapter, language });
+    setFilters({ type, sectionId, chapterId, language });
   }, [searchParams]);
-
-  // Search results
-  const results = useMemo(() => {
-    if (!query) return [];
-    return searchArticles(query, filters, locale);
-  }, [query, filters, locale]);
 
   // Breadcrumb items
   const breadcrumbItems = [

@@ -47,8 +47,8 @@ export async function apiRequest<T>(
   locale: Locale = 'uz'
 ): Promise<{ data?: T; error?: string; success: boolean }> {
   try {
-    // Determine if this is a GET request (cacheable)
-    const isGetRequest = !options.method || options.method === 'GET';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
@@ -56,9 +56,11 @@ export async function apiRequest<T>(
         ...getHeaders(locale),
         ...(options.headers || {}),
       },
-      // Disable caching to always get fresh data
       cache: 'no-store',
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     const json = await response.json();
 
@@ -322,14 +324,30 @@ export async function getArticles(
   filters?: ArticleFilters,
   locale: Locale = 'uz'
 ): Promise<PaginatedResult<Article>> {
+  const searchQuery = filters?.search?.trim();
   const params = new URLSearchParams();
+  let endpoint: string;
 
-  if (filters?.chapterId) params.append('chapter_id', String(filters.chapterId));
-  if (filters?.page) params.append('page', String(filters.page));
-  if (filters?.limit) params.append('per_page', String(filters.limit));
-
-  const queryString = params.toString();
-  const endpoint = `/articles${queryString ? `?${queryString}` : ''}`;
+  if (searchQuery && searchQuery.length >= 1) {
+    // Backend /search endpoint requires min 2 chars; for single digit/char fall back to articles + client filter
+    if (searchQuery.length >= 2) {
+      params.append('q', searchQuery);
+      if (filters?.page) params.append('page', String(filters.page));
+      if (filters?.limit) params.append('per_page', String(filters.limit));
+      endpoint = `/search?${params.toString()}`;
+    } else {
+      // Single character search: fetch all and filter client-side
+      params.append('per_page', '100');
+      if (filters?.chapterId) params.append('chapter_id', String(filters.chapterId));
+      endpoint = `/articles?${params.toString()}`;
+    }
+  } else {
+    if (filters?.chapterId) params.append('chapter_id', String(filters.chapterId));
+    if (filters?.page) params.append('page', String(filters.page));
+    if (filters?.limit) params.append('per_page', String(filters.limit));
+    const queryString = params.toString();
+    endpoint = `/articles${queryString ? `?${queryString}` : ''}`;
+  }
 
   const result = await apiRequest<any>(endpoint, {}, locale);
 
@@ -349,14 +367,36 @@ export async function getArticles(
 
   const items = result.data.items || result.data;
   const pagination = result.data.pagination;
+  let articles: Article[] = Array.isArray(items) ? items.map(transformArticle) : [];
+
+  if (filters?.sectionId) {
+    articles = articles.filter(a => a.sectionId === filters.sectionId);
+  }
+  if (filters?.chapterId && searchQuery) {
+    articles = articles.filter(a => a.chapterId === filters.chapterId);
+  }
+  if (searchQuery && searchQuery.length === 1) {
+    const q = searchQuery.toLowerCase();
+    articles = articles.filter(a => {
+      const num = String(a.number || '').toLowerCase();
+      const titleUz = (a.title?.uz || '').toLowerCase();
+      const titleRu = (a.title?.ru || '').toLowerCase();
+      return num.includes(q) || titleUz.includes(q) || titleRu.includes(q);
+    });
+  }
+
+  const total = pagination?.total ?? articles.length;
+  const limit = pagination?.per_page || filters?.limit || 10;
 
   return {
-    data: Array.isArray(items) ? items.map(transformArticle) : [],
+    data: articles,
     pagination: {
       page: pagination?.current_page || 1,
-      limit: pagination?.per_page || filters?.limit || 10,
-      total: pagination?.total || 0,
-      totalPages: pagination?.last_page || 0,
+      limit,
+      total: searchQuery ? articles.length : total,
+      totalPages:
+        pagination?.last_page ||
+        Math.max(1, Math.ceil((searchQuery ? articles.length : total) / limit)),
       hasNext: (pagination?.current_page || 1) < (pagination?.last_page || 1),
       hasPrev: (pagination?.current_page || 1) > 1,
     },

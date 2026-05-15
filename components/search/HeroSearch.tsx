@@ -54,19 +54,21 @@ export function HeroSearch({ locale, className }: HeroSearchProps) {
   };
 
   return (
-    <div ref={containerRef} className={cn('w-full max-w-2xl mx-auto', className)}>
+    <div ref={containerRef} className={cn('mx-auto w-full max-w-2xl', className)}>
       {/* Main Search Bar */}
       <form onSubmit={handleSubmit} className="relative">
-        <div className={cn(
-          'relative flex items-center',
-          'bg-white rounded-xl sm:rounded-2xl',
-          'shadow-xl shadow-primary-900/10',
-          'border-2 transition-colors duration-200',
-          isFocused ? 'border-primary-500' : 'border-transparent'
-        )}>
+        <div
+          className={cn(
+            'relative flex items-center',
+            'rounded-xl bg-white sm:rounded-2xl',
+            'shadow-xl shadow-primary-900/10',
+            'transition-shadow duration-200',
+            isFocused && 'ring-2 ring-primary-500/40'
+          )}
+        >
           {/* Search Icon */}
           <div className="pl-3 sm:pl-5">
-            <Search className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" />
+            <Search className="h-5 w-5 text-primary-600 sm:h-6 sm:w-6" />
           </div>
 
           {/* Input */}
@@ -74,14 +76,14 @@ export function HeroSearch({ locale, className }: HeroSearchProps) {
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
             onFocus={() => setIsFocused(true)}
             placeholder={t('header.searchPlaceholder')}
             className={cn(
-              'flex-1 h-12 sm:h-14 md:h-16 px-3 sm:px-4',
-              'bg-transparent border-0',
-              'text-base sm:text-lg text-text-primary placeholder:text-text-muted',
-              'focus:outline-none'
+              'h-12 flex-1 px-3 sm:h-14 sm:px-4 md:h-16',
+              'border-0 bg-transparent',
+              'text-base text-text-primary placeholder:text-text-muted sm:text-lg',
+              'focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0'
             )}
           />
 
@@ -92,10 +94,10 @@ export function HeroSearch({ locale, className }: HeroSearchProps) {
               variant="primary"
               size="md"
               disabled={!query.trim()}
-              className="rounded-lg sm:rounded-xl px-3 sm:px-6 h-9 sm:h-11"
+              className="h-9 rounded-lg px-3 sm:h-11 sm:rounded-xl sm:px-6"
             >
-              <span className="hidden sm:inline mr-2">{t('common.search')}</span>
-              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="mr-2 hidden sm:inline">{t('common.search')}</span>
+              <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </div>
         </div>

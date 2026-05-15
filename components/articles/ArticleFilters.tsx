@@ -6,7 +6,8 @@ import { useTranslations } from 'next-intl';
 import { Search, X, Grid3X3, List, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui';
-import { sections, chapters, getLocalizedText } from '@/lib/mock-data';
+import { getSections, getChapters, getLocalizedText } from '@/lib/api';
+import type { Section, Chapter, Locale } from '@/types';
 
 interface ArticleFiltersProps {
   locale: string;
@@ -37,11 +38,11 @@ export function ArticleFilters({ locale, totalResults, view, onViewChange }: Art
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isExpanded, setIsExpanded] = useState(false);
-  // Initialize with empty state, sync from URL in useEffect
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
 
-  // Sync filters from URL after hydration
   useEffect(() => {
     setFilters({
       search: searchParams.get('search') || '',
@@ -53,10 +54,19 @@ export function ArticleFilters({ locale, totalResults, view, onViewChange }: Art
     setIsHydrated(true);
   }, [searchParams]);
 
-  // Get chapters for selected section
-  const availableChapters = filters.sectionId
-    ? chapters.filter(c => c.sectionId === parseInt(filters.sectionId))
-    : chapters;
+  useEffect(() => {
+    getSections(locale as Locale).then(setSections);
+  }, [locale]);
+
+  useEffect(() => {
+    if (filters.sectionId) {
+      getChapters({ sectionId: parseInt(filters.sectionId) }, locale as Locale).then(setChapters);
+    } else {
+      setChapters([]);
+    }
+  }, [filters.sectionId, locale]);
+
+  const availableChapters = chapters;
 
   // Count active filters
   const activeFilterCount = Object.values(filters).filter(v => v !== '').length;

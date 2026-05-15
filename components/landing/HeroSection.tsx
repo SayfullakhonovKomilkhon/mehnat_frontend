@@ -13,9 +13,9 @@ interface HeroSectionProps {
 
 // Stats data - static for SSR
 const statsData = [
-  { key: 'totalArticles', value: '350+', icon: FileText },
-  { key: 'totalComments', value: '1,200+', icon: MessageSquare },
-  { key: 'users', value: '50,000+', icon: Users },
+  { key: 'totalArticles', value: '581', icon: FileText },
+  { key: 'totalComments', value: '581', icon: MessageSquare },
+  { key: 'users', value: '20,000', icon: Users },
   { key: 'experts', value: '25+', icon: Award },
 ];
 
@@ -75,14 +75,14 @@ export async function HeroSection({ locale }: HeroSectionProps) {
             </p>
 
             {/* Hero Search - Client Component */}
-            <div className="animate-slideUp-delay-2 mb-6 sm:mb-10">
+            <div className="animate-slideUp-delay-2 relative z-20 mb-6 sm:mb-10">
               <Suspense fallback={<SearchFallback />}>
                 <HeroSearchWrapper locale={locale} />
               </Suspense>
             </div>
 
             {/* CTA Buttons */}
-            <div className="animate-slideUp-delay-3 flex flex-col items-center justify-center gap-2.5 sm:flex-row sm:gap-4">
+            <div className="animate-slideUp-delay-3 relative z-10 flex flex-col items-center justify-center gap-2.5 sm:flex-row sm:gap-4">
               <Link href={`/${locale}/articles`} className="w-full sm:w-auto">
                 <Button
                   variant="gold"

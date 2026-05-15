@@ -1,12 +1,4 @@
-import { 
-  FileText, 
-  MessageSquare, 
-  Globe,
-  TrendingUp,
-  Award,
-  Shield,
-  Scale
-} from 'lucide-react';
+import { FileText, MessageSquare, Globe, TrendingUp, Award, Shield, Scale } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StatisticsSectionProps {
@@ -19,21 +11,21 @@ interface StatisticsSectionProps {
 const statisticsData = [
   {
     key: 'totalArticles',
-    value: '450+',
+    value: '581',
     icon: FileText,
     trend: { value: 12, label: 'bu oy' },
     color: 'blue',
-    label: "Moddalar",
-    description: "Rasmiy sharhlar bilan",
+    label: 'Moddalar',
+    description: 'Rasmiy sharhlar bilan',
   },
   {
     key: 'totalComments',
-    value: '1,200+',
+    value: '581',
     icon: MessageSquare,
     trend: { value: 8, label: 'bu oy' },
     color: 'emerald',
-    label: "Sharhlar",
-    description: "Ekspert izohlari",
+    label: 'Sharhlar',
+    description: 'Ekspert izohlari',
   },
   {
     key: 'experts',
@@ -41,64 +33,65 @@ const statisticsData = [
     icon: Award,
     trend: { value: 3, label: 'yangi' },
     color: 'amber',
-    label: "Ekspertlar",
-    description: "Malakali huquqshunoslar",
+    label: 'Ekspertlar',
+    description: 'Malakali huquqshunoslar',
   },
   {
     key: 'translations',
-    value: '3',
+    value: '2',
     suffix: ' tilda',
     icon: Globe,
     trend: null,
     color: 'purple',
-    label: "Tillar",
-    description: "UZ, RU, EN tillarda",
+    label: 'Tillar',
+    description: 'UZ, RU tillarda',
   },
 ];
 
 // Color mappings
 const colorStyles: Record<string, { icon: string; bg: string; border: string }> = {
-  blue: { 
-    icon: 'text-primary-600', 
-    bg: 'bg-primary-50', 
-    border: 'border-primary-200' 
+  blue: {
+    icon: 'text-primary-600',
+    bg: 'bg-primary-50',
+    border: 'border-primary-200',
   },
-  emerald: { 
-    icon: 'text-emerald-600', 
-    bg: 'bg-emerald-50', 
-    border: 'border-emerald-200' 
+  emerald: {
+    icon: 'text-emerald-600',
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200',
   },
-  amber: { 
-    icon: 'text-amber-600', 
-    bg: 'bg-amber-50', 
-    border: 'border-amber-200' 
+  amber: {
+    icon: 'text-amber-600',
+    bg: 'bg-amber-50',
+    border: 'border-amber-200',
   },
-  purple: { 
-    icon: 'text-purple-600', 
-    bg: 'bg-purple-50', 
-    border: 'border-purple-200' 
+  purple: {
+    icon: 'text-purple-600',
+    bg: 'bg-purple-50',
+    border: 'border-purple-200',
   },
 };
 
 // Server Component - No client-side JS needed
-export function StatisticsSection({ 
-  variant = 'cards', 
+export function StatisticsSection({
+  variant = 'cards',
   showTrends = true,
-  showBackground = true 
+  showBackground = true,
 }: StatisticsSectionProps) {
-
   return (
-    <section 
+    <section
       className={cn(
-        'relative py-10 sm:py-16 md:py-24 overflow-hidden',
-        showBackground ? 'bg-gradient-to-br from-primary-50 via-blue-50 to-indigo-50' : 'bg-gov-light'
+        'relative overflow-hidden py-10 sm:py-16 md:py-24',
+        showBackground
+          ? 'bg-gradient-to-br from-primary-50 via-blue-50 to-indigo-50'
+          : 'bg-gov-light'
       )}
     >
       {/* Decorative Background Elements - CSS only */}
       {showBackground && (
         <>
           {/* Grid Pattern */}
-          <div 
+          <div
             className="absolute inset-0 opacity-[0.03]"
             style={{
               backgroundImage: `
@@ -110,55 +103,48 @@ export function StatisticsSection({
           />
 
           {/* Decorative Scale of Justice */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03]">
-            <Scale className="w-[600px] h-[600px] text-primary-900" strokeWidth={0.5} />
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03]">
+            <Scale className="h-[600px] w-[600px] text-primary-900" strokeWidth={0.5} />
           </div>
 
           {/* Static Gradient Orbs */}
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary-200/30 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-accent-gold/20 rounded-full blur-[80px]" />
+          <div className="absolute right-0 top-0 h-[400px] w-[400px] rounded-full bg-primary-200/30 blur-[100px]" />
+          <div className="absolute bottom-0 left-0 h-[300px] w-[300px] rounded-full bg-accent-gold/20 blur-[80px]" />
         </>
       )}
 
       <div className="section-container relative z-10">
         {/* Section Header */}
-        <div className="text-center mb-8 sm:mb-12 animate-fadeIn">
-          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/60 backdrop-blur-sm rounded-full border border-gov-border mb-3 sm:mb-4">
-            <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-600" />
-            <span className="text-xs sm:text-sm font-medium text-primary-700">Rasmiy statistika</span>
+        <div className="animate-fadeIn mb-8 text-center sm:mb-12">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gov-border bg-white/60 px-3 py-1.5 backdrop-blur-sm sm:mb-4 sm:px-4 sm:py-2">
+            <Shield className="h-3.5 w-3.5 text-primary-600 sm:h-4 sm:w-4" />
+            <span className="text-xs font-medium text-primary-700 sm:text-sm">
+              Rasmiy statistika
+            </span>
           </div>
-          <h2 className="font-heading text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-text-primary mb-2 sm:mb-3">
+          <h2 className="mb-2 font-heading text-xl font-bold text-text-primary sm:mb-3 sm:text-2xl md:text-3xl lg:text-4xl">
             Platforma ko'rsatkichlari
           </h2>
-          <p className="text-text-secondary text-sm sm:text-base max-w-2xl mx-auto px-4 sm:px-0">
+          <p className="mx-auto max-w-2xl px-4 text-sm text-text-secondary sm:px-0 sm:text-base">
             O'zbekiston Respublikasi Mehnat kodeksiga oid eng to'liq ma'lumotlar bazasi
           </p>
         </div>
 
         {/* Statistics Grid - Cards variant */}
         {variant === 'cards' && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-4">
             {statisticsData.map((stat, index) => (
-              <StatCard
-                key={stat.key}
-                stat={stat}
-                index={index}
-                showTrend={showTrends}
-              />
+              <StatCard key={stat.key} stat={stat} index={index} showTrend={showTrends} />
             ))}
           </div>
         )}
 
         {/* Strip Variant */}
         {variant === 'strip' && (
-          <div className="bg-white rounded-2xl shadow-lg border border-gov-border p-6 md:p-8 animate-fadeIn">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 divide-y md:divide-y-0 md:divide-x divide-gov-border">
+          <div className="animate-fadeIn rounded-2xl border border-gov-border bg-white p-6 shadow-lg md:p-8">
+            <div className="grid grid-cols-2 gap-6 divide-y divide-gov-border md:grid-cols-4 md:gap-8 md:divide-x md:divide-y-0">
               {statisticsData.map((stat, index) => (
-                <StatStrip
-                  key={stat.key}
-                  stat={stat}
-                  index={index}
-                />
+                <StatStrip key={stat.key} stat={stat} index={index} />
               ))}
             </div>
           </div>
@@ -166,33 +152,28 @@ export function StatisticsSection({
 
         {/* Grid Variant */}
         {variant === 'grid' && (
-          <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-3xl mx-auto">
+          <div className="mx-auto grid max-w-3xl grid-cols-2 gap-4 md:gap-6">
             {statisticsData.map((stat, index) => (
-              <StatGridCard
-                key={stat.key}
-                stat={stat}
-                index={index}
-                showTrend={showTrends}
-              />
+              <StatGridCard key={stat.key} stat={stat} index={index} showTrend={showTrends} />
             ))}
           </div>
         )}
 
         {/* Bottom Decorative Line */}
-        <div className="mt-12 h-1 bg-gradient-to-r from-transparent via-primary-300 to-transparent rounded-full" />
+        <div className="mt-12 h-1 rounded-full bg-gradient-to-r from-transparent via-primary-300 to-transparent" />
       </div>
     </section>
   );
 }
 
 // Card Variant Component - CSS animations only
-function StatCard({ 
-  stat, 
-  index, 
+function StatCard({
+  stat,
+  index,
   showTrend,
-}: { 
-  stat: typeof statisticsData[0]; 
-  index: number; 
+}: {
+  stat: (typeof statisticsData)[0];
+  index: number;
   showTrend: boolean;
 }) {
   const Icon = stat.icon;
@@ -201,7 +182,7 @@ function StatCard({
   return (
     <div
       className={cn(
-        'relative bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-card border',
+        'relative rounded-xl border bg-white p-4 shadow-card sm:rounded-2xl sm:p-6',
         'card-interactive', // CSS-only hover effect
         colors.border,
         'animate-fadeIn'
@@ -209,40 +190,40 @@ function StatCard({
       style={{ animationDelay: `${index * 0.1}s` }}
     >
       {/* Icon */}
-      <div className={cn(
-        'w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4',
-        colors.bg
-      )}>
-        <Icon className={cn('w-5 h-5 sm:w-6 sm:h-6', colors.icon)} />
+      <div
+        className={cn(
+          'mb-3 flex h-10 w-10 items-center justify-center rounded-lg sm:mb-4 sm:h-12 sm:w-12 sm:rounded-xl',
+          colors.bg
+        )}
+      >
+        <Icon className={cn('h-5 w-5 sm:h-6 sm:w-6', colors.icon)} />
       </div>
 
       {/* Number */}
-      <div className="flex items-baseline gap-1 mb-1.5 sm:mb-2">
-        <span className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-text-primary">
+      <div className="mb-1.5 flex items-baseline gap-1 sm:mb-2">
+        <span className="font-heading text-2xl font-bold text-text-primary sm:text-3xl md:text-4xl">
           {stat.value}
         </span>
         {stat.suffix && (
-          <span className="text-base sm:text-xl md:text-2xl font-heading font-bold text-text-muted">
+          <span className="font-heading text-base font-bold text-text-muted sm:text-xl md:text-2xl">
             {stat.suffix}
           </span>
         )}
       </div>
 
       {/* Label */}
-      <p className="font-medium text-sm sm:text-base text-text-primary mb-0.5 sm:mb-1">
+      <p className="mb-0.5 text-sm font-medium text-text-primary sm:mb-1 sm:text-base">
         {stat.label}
       </p>
 
       {/* Description */}
-      <p className="text-xs sm:text-sm text-text-muted line-clamp-2">
-        {stat.description}
-      </p>
+      <p className="line-clamp-2 text-xs text-text-muted sm:text-sm">{stat.description}</p>
 
       {/* Trend Indicator - Hidden on mobile */}
       {showTrend && stat.trend && (
-        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 hidden sm:block">
-          <div className="flex items-center gap-1 px-2 py-1 bg-success-light rounded-full">
-            <TrendingUp className="w-3 h-3 text-success" />
+        <div className="absolute right-2 top-2 hidden sm:right-4 sm:top-4 sm:block">
+          <div className="flex items-center gap-1 rounded-full bg-success-light px-2 py-1">
+            <TrendingUp className="h-3 w-3 text-success" />
             <span className="text-xs font-medium text-success">
               +{stat.trend.value} {stat.trend.label}
             </span>
@@ -254,49 +235,44 @@ function StatCard({
 }
 
 // Strip Variant Component
-function StatStrip({ 
-  stat, 
-  index, 
-}: { 
-  stat: typeof statisticsData[0]; 
-  index: number; 
-}) {
+function StatStrip({ stat, index }: { stat: (typeof statisticsData)[0]; index: number }) {
   const Icon = stat.icon;
   const colors = colorStyles[stat.color];
 
   return (
     <div
       className={cn(
-        'text-center py-4 first:pt-0 md:first:pt-4 last:pb-0 md:last:pb-4',
-        'md:px-4 first:pl-0 last:pr-0',
+        'py-4 text-center first:pt-0 last:pb-0 md:first:pt-4 md:last:pb-4',
+        'first:pl-0 last:pr-0 md:px-4',
         'animate-fadeIn'
       )}
       style={{ animationDelay: `${index * 0.1}s` }}
     >
-      <div className={cn(
-        'w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3',
-        colors.bg
-      )}>
-        <Icon className={cn('w-5 h-5', colors.icon)} />
+      <div
+        className={cn(
+          'mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg',
+          colors.bg
+        )}
+      >
+        <Icon className={cn('h-5 w-5', colors.icon)} />
       </div>
-      <div className="text-2xl md:text-3xl font-heading font-bold text-text-primary mb-1">
-        {stat.value}{stat.suffix || ''}
+      <div className="mb-1 font-heading text-2xl font-bold text-text-primary md:text-3xl">
+        {stat.value}
+        {stat.suffix || ''}
       </div>
-      <p className="text-sm text-text-secondary">
-        {stat.label}
-      </p>
+      <p className="text-sm text-text-secondary">{stat.label}</p>
     </div>
   );
 }
 
 // Grid Variant Component
-function StatGridCard({ 
-  stat, 
-  index, 
+function StatGridCard({
+  stat,
+  index,
   showTrend,
-}: { 
-  stat: typeof statisticsData[0]; 
-  index: number; 
+}: {
+  stat: (typeof statisticsData)[0];
+  index: number;
   showTrend: boolean;
 }) {
   const Icon = stat.icon;
@@ -305,40 +281,39 @@ function StatGridCard({
   return (
     <div
       className={cn(
-        'bg-white rounded-2xl p-8 shadow-lg border-2',
+        'rounded-2xl border-2 bg-white p-8 shadow-lg',
         'card-interactive',
         colors.border,
-        'text-center animate-fadeIn'
+        'animate-fadeIn text-center'
       )}
       style={{ animationDelay: `${index * 0.1}s` }}
     >
       {/* Icon */}
-      <div className={cn(
-        'w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4',
-        colors.bg
-      )}>
-        <Icon className={cn('w-8 h-8', colors.icon)} />
+      <div
+        className={cn(
+          'mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl',
+          colors.bg
+        )}
+      >
+        <Icon className={cn('h-8 w-8', colors.icon)} />
       </div>
 
       {/* Number */}
-      <div className="text-4xl md:text-5xl font-heading font-bold text-text-primary mb-2">
-        {stat.value}{stat.suffix || ''}
+      <div className="mb-2 font-heading text-4xl font-bold text-text-primary md:text-5xl">
+        {stat.value}
+        {stat.suffix || ''}
       </div>
 
       {/* Label */}
-      <p className="text-lg font-medium text-text-primary mb-2">
-        {stat.label}
-      </p>
+      <p className="mb-2 text-lg font-medium text-text-primary">{stat.label}</p>
 
       {/* Description */}
-      <p className="text-sm text-text-muted">
-        {stat.description}
-      </p>
+      <p className="text-sm text-text-muted">{stat.description}</p>
 
       {/* Trend */}
       {showTrend && stat.trend && (
-        <div className="mt-4 inline-flex items-center gap-1 px-3 py-1.5 bg-success-light rounded-full">
-          <TrendingUp className="w-4 h-4 text-success" />
+        <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-success-light px-3 py-1.5">
+          <TrendingUp className="h-4 w-4 text-success" />
           <span className="text-sm font-medium text-success">
             +{stat.trend.value} {stat.trend.label}
           </span>
