@@ -1,4 +1,5 @@
 import { FileText, MessageSquare, Globe, TrendingUp, Award, Shield, Scale } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { cn } from '@/lib/utils';
 
 interface StatisticsSectionProps {
@@ -6,47 +7,6 @@ interface StatisticsSectionProps {
   showTrends?: boolean;
   showBackground?: boolean;
 }
-
-// Statistics Data - static values for SSR
-const statisticsData = [
-  {
-    key: 'totalArticles',
-    value: '581',
-    icon: FileText,
-    trend: { value: 12, label: 'bu oy' },
-    color: 'blue',
-    label: 'Moddalar',
-    description: 'Rasmiy sharhlar bilan',
-  },
-  {
-    key: 'totalComments',
-    value: '581',
-    icon: MessageSquare,
-    trend: { value: 8, label: 'bu oy' },
-    color: 'emerald',
-    label: 'Sharhlar',
-    description: 'Ekspert izohlari',
-  },
-  {
-    key: 'experts',
-    value: '25',
-    icon: Award,
-    trend: { value: 3, label: 'yangi' },
-    color: 'amber',
-    label: 'Ekspertlar',
-    description: 'Malakali huquqshunoslar',
-  },
-  {
-    key: 'translations',
-    value: '2',
-    suffix: ' tilda',
-    icon: Globe,
-    trend: null,
-    color: 'purple',
-    label: 'Tillar',
-    description: 'UZ, RU tillarda',
-  },
-];
 
 // Color mappings
 const colorStyles: Record<string, { icon: string; bg: string; border: string }> = {
@@ -73,11 +33,53 @@ const colorStyles: Record<string, { icon: string; bg: string; border: string }> 
 };
 
 // Server Component - No client-side JS needed
-export function StatisticsSection({
+export async function StatisticsSection({
   variant = 'cards',
   showTrends = true,
   showBackground = true,
 }: StatisticsSectionProps) {
+  const t = await getTranslations('statisticsSection');
+
+  const statisticsData = [
+    {
+      key: 'totalArticles',
+      value: '581',
+      icon: FileText,
+      trend: { value: 12, label: t('trends.thisMonth') },
+      color: 'blue',
+      label: t('cards.articlesLabel'),
+      description: t('cards.articlesDescription'),
+    },
+    {
+      key: 'totalComments',
+      value: '581',
+      icon: MessageSquare,
+      trend: { value: 8, label: t('trends.thisMonth') },
+      color: 'emerald',
+      label: t('cards.commentariesLabel'),
+      description: t('cards.commentariesDescription'),
+    },
+    {
+      key: 'experts',
+      value: '25',
+      icon: Award,
+      trend: { value: 3, label: t('trends.new') },
+      color: 'amber',
+      label: t('cards.expertsLabel'),
+      description: t('cards.expertsDescription'),
+    },
+    {
+      key: 'translations',
+      value: '2',
+      suffix: t('cards.languagesSuffix'),
+      icon: Globe,
+      trend: null as { value: number; label: string } | null,
+      color: 'purple',
+      label: t('cards.languagesLabel'),
+      description: t('cards.languagesDescription'),
+    },
+  ];
+
   return (
     <section
       className={cn(
@@ -118,15 +120,13 @@ export function StatisticsSection({
         <div className="animate-fadeIn mb-8 text-center sm:mb-12">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gov-border bg-white/60 px-3 py-1.5 backdrop-blur-sm sm:mb-4 sm:px-4 sm:py-2">
             <Shield className="h-3.5 w-3.5 text-primary-600 sm:h-4 sm:w-4" />
-            <span className="text-xs font-medium text-primary-700 sm:text-sm">
-              Rasmiy statistika
-            </span>
+            <span className="text-xs font-medium text-primary-700 sm:text-sm">{t('badge')}</span>
           </div>
           <h2 className="mb-2 font-heading text-xl font-bold text-text-primary sm:mb-3 sm:text-2xl md:text-3xl lg:text-4xl">
-            Platforma ko'rsatkichlari
+            {t('title')}
           </h2>
           <p className="mx-auto max-w-2xl px-4 text-sm text-text-secondary sm:px-0 sm:text-base">
-            O'zbekiston Respublikasi Mehnat kodeksiga oid eng to'liq ma'lumotlar bazasi
+            {t('subtitle')}
           </p>
         </div>
 

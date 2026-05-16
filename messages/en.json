@@ -141,6 +141,26 @@
     "online": "Online",
     "thinking": "Preparing response..."
   },
+  "statisticsSection": {
+    "badge": "Official statistics",
+    "title": "Platform indicators",
+    "subtitle": "The most complete database on the Labor Code of the Republic of Uzbekistan",
+    "trends": {
+      "thisMonth": "this month",
+      "new": "new"
+    },
+    "cards": {
+      "articlesLabel": "Sections",
+      "articlesDescription": "Labor code sections",
+      "commentariesLabel": "Articles",
+      "commentariesDescription": "Total articles in the code",
+      "expertsLabel": "Experts",
+      "expertsDescription": "Qualified lawyers",
+      "languagesLabel": "Languages",
+      "languagesDescription": "UZ, RU",
+      "languagesSuffix": " languages"
+    }
+  },
   "stats": {
     "totalArticles": "Total Articles",
     "totalComments": "Total Comments",

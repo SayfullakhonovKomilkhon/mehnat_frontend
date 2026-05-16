@@ -11,6 +11,15 @@ interface SectionsPageProps {
 
 export const revalidate = 60;
 
+// Backend returns titles in ALL CAPS; convert to "Sentence case" for readability.
+function toSentenceCase(text: string): string {
+  if (!text) return text;
+  const isAllCaps = text === text.toLocaleUpperCase() && text !== text.toLocaleLowerCase();
+  if (!isAllCaps) return text;
+  const lower = text.toLocaleLowerCase();
+  return lower.charAt(0).toLocaleUpperCase() + lower.slice(1);
+}
+
 export default async function SectionsPage({ params: { locale } }: SectionsPageProps) {
   const t = await getTranslations();
 
@@ -49,10 +58,15 @@ export default async function SectionsPage({ params: { locale } }: SectionsPageP
         {sections.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {sections.map(section => {
-              const title = getLocalizedText(section.title, locale);
-              const description = section.description
+              const rawTitle = getLocalizedText(section.title, locale);
+              const rawDescription = section.description
                 ? getLocalizedText(section.description, locale)
                 : '';
+              const title = toSentenceCase(rawTitle);
+              const description =
+                rawDescription && rawDescription.toLowerCase() !== rawTitle.toLowerCase()
+                  ? toSentenceCase(rawDescription)
+                  : '';
 
               return (
                 <Link
@@ -61,7 +75,6 @@ export default async function SectionsPage({ params: { locale } }: SectionsPageP
                   className="block h-full"
                 >
                   <Card hover className="group flex h-full flex-col">
-                    {/* Section Number */}
                     <div className="mb-3 flex items-center justify-between sm:mb-4">
                       <Badge variant="primary" size="md" className="text-xs sm:text-sm">
                         {section.number}-{locale === 'ru' ? 'раздел' : "bo'lim"}
@@ -69,17 +82,14 @@ export default async function SectionsPage({ params: { locale } }: SectionsPageP
                       <ChevronRight className="h-4 w-4 text-text-muted transition-colors duration-150 group-hover:text-primary-600 sm:h-5 sm:w-5" />
                     </div>
 
-                    {/* Title */}
-                    <h2 className="mb-2 font-heading text-base font-semibold text-text-primary transition-colors duration-150 group-hover:text-primary-700 sm:text-lg md:text-xl">
+                    <h2 className="mb-2 line-clamp-3 min-h-[3.75rem] font-heading text-base font-semibold leading-snug text-text-primary transition-colors duration-150 group-hover:text-primary-700 sm:min-h-[4.5rem] sm:text-lg">
                       {title}
                     </h2>
 
-                    {/* Description */}
-                    <p className="line-clamp-2 flex-grow text-xs text-text-secondary sm:text-sm">
+                    <p className="line-clamp-2 min-h-[2.5rem] flex-grow text-xs leading-relaxed text-text-secondary sm:text-sm">
                       {description || '\u00A0'}
                     </p>
 
-                    {/* Stats */}
                     <div className="mt-3 flex items-center gap-3 border-t border-gov-border pt-3 sm:mt-4 sm:gap-4 sm:pt-4">
                       <div className="flex items-center gap-1 text-xs text-text-muted sm:gap-1.5 sm:text-sm">
                         <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />

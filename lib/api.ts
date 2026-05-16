@@ -20,6 +20,7 @@ import type {
   LocalizedString,
   Locale,
 } from '@/types';
+import { latinToCyrillicUz, hasLatin } from './translit';
 
 // ============================================
 // API CONFIGURATION
@@ -324,23 +325,22 @@ export async function getArticles(
   filters?: ArticleFilters,
   locale: Locale = 'uz'
 ): Promise<PaginatedResult<Article>> {
-  const searchQuery = filters?.search?.trim();
+  const rawSearch = filters?.search?.trim();
+  // Transliterate Latin → Cyrillic for Uzbek locale so DB (Cyrillic) is searchable
+  const searchQuery =
+    rawSearch && locale === 'uz' && hasLatin(rawSearch) ? latinToCyrillicUz(rawSearch) : rawSearch;
   const params = new URLSearchParams();
   let endpoint: string;
 
-  if (searchQuery && searchQuery.length >= 1) {
-    // Backend /search endpoint requires min 2 chars; for single digit/char fall back to articles + client filter
-    if (searchQuery.length >= 2) {
-      params.append('q', searchQuery);
-      if (filters?.page) params.append('page', String(filters.page));
-      if (filters?.limit) params.append('per_page', String(filters.limit));
-      endpoint = `/search?${params.toString()}`;
-    } else {
-      // Single character search: fetch all and filter client-side
-      params.append('per_page', '100');
-      if (filters?.chapterId) params.append('chapter_id', String(filters.chapterId));
-      endpoint = `/articles?${params.toString()}`;
-    }
+  if (searchQuery && searchQuery.length >= 2) {
+    params.append('q', searchQuery);
+    if (filters?.page) params.append('page', String(filters.page));
+    if (filters?.limit) params.append('per_page', String(filters.limit));
+    endpoint = `/search?${params.toString()}`;
+  } else if (searchQuery && searchQuery.length === 1) {
+    params.append('per_page', '100');
+    if (filters?.chapterId) params.append('chapter_id', String(filters.chapterId));
+    endpoint = `/articles?${params.toString()}`;
   } else {
     if (filters?.chapterId) params.append('chapter_id', String(filters.chapterId));
     if (filters?.page) params.append('page', String(filters.page));
@@ -377,11 +377,19 @@ export async function getArticles(
   }
   if (searchQuery && searchQuery.length === 1) {
     const q = searchQuery.toLowerCase();
+    const qRaw = (rawSearch || '').toLowerCase();
     articles = articles.filter(a => {
       const num = String(a.number || '').toLowerCase();
       const titleUz = (a.title?.uz || '').toLowerCase();
       const titleRu = (a.title?.ru || '').toLowerCase();
-      return num.includes(q) || titleUz.includes(q) || titleRu.includes(q);
+      return (
+        num.includes(q) ||
+        num.includes(qRaw) ||
+        titleUz.includes(q) ||
+        titleUz.includes(qRaw) ||
+        titleRu.includes(q) ||
+        titleRu.includes(qRaw)
+      );
     });
   }
 
@@ -581,14 +589,101 @@ export async function searchArticles(
   params: SearchParams,
   locale: Locale = 'uz'
 ): Promise<PaginatedResult<SearchResult>> {
+  const rawQuery = (params.query || '').trim();
+  if (!rawQuery) {
+    return {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: params.limit || 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
+    };
+  }
+
+  // For Uzbek locale, transliterate Latin input (e.g. "mehnat") into Cyrillic
+  // ("меҳнат") so the backend's full-text search (over Cyrillic content) can match.
+  const queryForBackend =
+    locale === 'uz' && hasLatin(rawQuery) ? latinToCyrillicUz(rawQuery) : rawQuery;
+
+  // Backend /search requires min 2 chars. For single-char queries (e.g. "4")
+  // fall back to fetching the articles list and filtering client-side.
+  if (queryForBackend.length < 2) {
+    return searchArticlesFallback(rawQuery, queryForBackend, params, locale);
+  }
+
   const queryParams = new URLSearchParams();
-  queryParams.append('q', params.query);
+  queryParams.append('q', queryForBackend);
   if (params.page) queryParams.append('page', String(params.page));
   if (params.limit) queryParams.append('per_page', String(params.limit));
   if (params.filters?.sectionId) queryParams.append('section_id', String(params.filters.sectionId));
   if (params.filters?.chapterId) queryParams.append('chapter_id', String(params.filters.chapterId));
 
   const result = await apiRequest<any>(`/search?${queryParams.toString()}`, {}, locale);
+
+  if (!result.success || !result.data) {
+    return searchArticlesFallback(rawQuery, queryForBackend, params, locale);
+  }
+
+  const items = result.data.items || result.data || [];
+  const pagination = result.data.pagination;
+
+  const searchResults: SearchResult[] = (Array.isArray(items) ? items : []).map((item: any) =>
+    buildSearchResult(item, locale)
+  );
+
+  // If backend returned nothing for a transliterated query, try a client-side fallback
+  // (covers cases where the FTS dictionary normalizes characters differently).
+  if (searchResults.length === 0) {
+    return searchArticlesFallback(rawQuery, queryForBackend, params, locale);
+  }
+
+  return {
+    data: searchResults,
+    pagination: {
+      page: pagination?.current_page || 1,
+      limit: pagination?.per_page || params.limit || 10,
+      total: pagination?.total || searchResults.length,
+      totalPages: pagination?.last_page || 1,
+      hasNext: (pagination?.current_page || 1) < (pagination?.last_page || 1),
+      hasPrev: (pagination?.current_page || 1) > 1,
+    },
+  };
+}
+
+/** Build a SearchResult from a raw backend article-like item. */
+function buildSearchResult(item: any, locale: Locale): SearchResult {
+  return {
+    type: 'article' as const,
+    id: item.id,
+    title: `${item.article_number || item.number}-modda. ${getLocalizedText(item.title, locale)}`,
+    excerpt:
+      getLocalizedText(item.content || item.summary, locale).substring(0, 200) +
+      (getLocalizedText(item.content || item.summary, locale).length > 200 ? '...' : ''),
+    path: `/articles/${item.id}`,
+    breadcrumb: item.chapter
+      ? `${item.chapter.section?.order_number || 1}-bo'lim › ${item.chapter.order_number || 1}-bob`
+      : '',
+    matchedIn: ['title', 'content'] as ('title' | 'content' | 'comment')[],
+    relevanceScore: item.relevance_score || 1,
+    article: transformArticle(item),
+  };
+}
+
+/**
+ * Client-side fallback: fetch all articles and filter by article_number or title.
+ * Used when backend /search rejects the query (< 2 chars) or returns nothing.
+ */
+async function searchArticlesFallback(
+  rawQuery: string,
+  cyrillicQuery: string,
+  params: SearchParams,
+  locale: Locale
+): Promise<PaginatedResult<SearchResult>> {
+  const result = await apiRequest<any>(`/articles?per_page=100`, {}, locale);
 
   if (!result.success || !result.data) {
     return {
@@ -605,31 +700,35 @@ export async function searchArticles(
   }
 
   const items = result.data.items || result.data || [];
-  const pagination = result.data.pagination;
+  const rawLower = rawQuery.toLowerCase();
+  const cyrLower = cyrillicQuery.toLowerCase();
 
-  const searchResults: SearchResult[] = (Array.isArray(items) ? items : []).map((item: any) => ({
-    type: 'article' as const,
-    id: item.id,
-    title: `${item.article_number || item.number}-modda. ${getLocalizedText(item.title, locale)}`,
-    excerpt: getLocalizedText(item.content || item.summary, locale).substring(0, 200) + '...',
-    path: `/articles/${item.id}`,
-    breadcrumb: item.chapter
-      ? `${item.chapter.section?.order_number || 1}-bo'lim › ${item.chapter.order_number || 1}-bob`
-      : '',
-    matchedIn: ['title', 'content'] as ('title' | 'content' | 'comment')[],
-    relevanceScore: item.relevance_score || 1,
-    article: transformArticle(item),
-  }));
+  const filtered = (Array.isArray(items) ? items : []).filter((item: any) => {
+    const num = String(item.article_number || '').toLowerCase();
+    const title = (getLocalizedText(item.title, locale) || '').toLowerCase();
+    const summary = (getLocalizedText(item.summary, locale) || '').toLowerCase();
+    return (
+      num.includes(rawLower) ||
+      num.includes(cyrLower) ||
+      title.includes(cyrLower) ||
+      title.includes(rawLower) ||
+      summary.includes(cyrLower) ||
+      summary.includes(rawLower)
+    );
+  });
+
+  const limit = params.limit || 20;
+  const sliced = filtered.slice(0, limit);
 
   return {
-    data: searchResults,
+    data: sliced.map((item: any) => buildSearchResult(item, locale)),
     pagination: {
-      page: pagination?.current_page || 1,
-      limit: pagination?.per_page || params.limit || 10,
-      total: pagination?.total || searchResults.length,
-      totalPages: pagination?.last_page || 1,
-      hasNext: (pagination?.current_page || 1) < (pagination?.last_page || 1),
-      hasPrev: (pagination?.current_page || 1) > 1,
+      page: 1,
+      limit,
+      total: filtered.length,
+      totalPages: Math.max(1, Math.ceil(filtered.length / limit)),
+      hasNext: filtered.length > limit,
+      hasPrev: false,
     },
   };
 }

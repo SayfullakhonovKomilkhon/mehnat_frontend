@@ -187,6 +187,15 @@ const colorMap: Record<string, { border: string; bg: string; text: string }> = {
   cyan: { border: 'border-l-cyan-600', bg: 'bg-cyan-50', text: 'text-cyan-600' },
 };
 
+// Backend may return titles in ALL CAPS; convert to "Sentence case" for readability.
+function toSentenceCase(text: string): string {
+  if (!text) return text;
+  const isAllCaps = text === text.toLocaleUpperCase() && text !== text.toLocaleLowerCase();
+  if (!isAllCaps) return text;
+  const lower = text.toLocaleLowerCase();
+  return lower.charAt(0).toLocaleUpperCase() + lower.slice(1);
+}
+
 // Convert API section to display format
 function sectionToDisplayFormat(section: Section, index: number) {
   const colors = ['blue', 'indigo', 'emerald', 'amber', 'green', 'red', 'purple', 'rose', 'cyan'];
@@ -368,15 +377,25 @@ export async function SectionsGrid({ locale, showHeader = true, maxItems }: Sect
                         </div>
                       </div>
 
-                      {/* Title */}
-                      <h3 className="mb-1.5 line-clamp-2 font-heading text-base font-semibold text-text-primary transition-colors group-hover:text-primary-700 sm:mb-2 sm:text-lg">
-                        {getLocalizedTitle(section)}
-                      </h3>
-
-                      {/* Description */}
-                      <p className="line-clamp-2 flex-grow text-xs leading-relaxed text-text-secondary sm:text-sm">
-                        {getLocalizedDescription(section)}
-                      </p>
+                      {(() => {
+                        const rawTitle = getLocalizedTitle(section) || '';
+                        const rawDesc = getLocalizedDescription(section) || '';
+                        const title = toSentenceCase(rawTitle);
+                        const description =
+                          rawDesc && rawDesc.toLowerCase() !== rawTitle.toLowerCase()
+                            ? toSentenceCase(rawDesc)
+                            : '';
+                        return (
+                          <>
+                            <h3 className="mb-1.5 line-clamp-2 min-h-[3rem] font-heading text-base font-semibold leading-snug text-text-primary transition-colors group-hover:text-primary-700 sm:mb-2 sm:min-h-[3.5rem] sm:text-lg">
+                              {title}
+                            </h3>
+                            <p className="line-clamp-2 min-h-[2.5rem] flex-grow text-xs leading-relaxed text-text-secondary sm:text-sm">
+                              {description || '\u00A0'}
+                            </p>
+                          </>
+                        );
+                      })()}
 
                       {/* Stats & Arrow - Always at bottom */}
                       <div className="mt-3 flex items-center justify-between border-t border-gov-border pt-3 sm:mt-4 sm:pt-4">

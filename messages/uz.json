@@ -150,6 +150,26 @@
     "commentaries": "Sharhlar",
     "users": "Foydalanuvchilar"
   },
+  "statisticsSection": {
+    "badge": "Rasmiy statistika",
+    "title": "Platforma ko'rsatkichlari",
+    "subtitle": "O'zbekiston Respublikasi Mehnat kodeksiga oid eng to'liq ma'lumotlar bazasi",
+    "trends": {
+      "thisMonth": "bu oy",
+      "new": "yangi"
+    },
+    "cards": {
+      "articlesLabel": "Bo'limlar",
+      "articlesDescription": "Mehnat kodeksi bo'limlari",
+      "commentariesLabel": "Moddalar",
+      "commentariesDescription": "Jami moddalar soni",
+      "expertsLabel": "Ekspertlar",
+      "expertsDescription": "Malakali huquqshunoslar",
+      "languagesLabel": "Tillar",
+      "languagesDescription": "UZ, RU tillarda",
+      "languagesSuffix": " tilda"
+    }
+  },
   "features": {
     "title": "Portal imkoniyatlari",
     "subtitle": "Professional huquqiy yordam va maslahatlar",

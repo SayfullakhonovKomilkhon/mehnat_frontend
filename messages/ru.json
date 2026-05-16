@@ -150,6 +150,26 @@
     "commentaries": "Комментариев",
     "users": "Пользователей"
   },
+  "statisticsSection": {
+    "badge": "Официальная статистика",
+    "title": "Показатели платформы",
+    "subtitle": "Самая полная база данных по Трудовому кодексу Республики Узбекистан",
+    "trends": {
+      "thisMonth": "этот месяц",
+      "new": "новых"
+    },
+    "cards": {
+      "articlesLabel": "Разделы",
+      "articlesDescription": "Разделы Трудового кодекса",
+      "commentariesLabel": "Статей",
+      "commentariesDescription": "Всего статей кодекса",
+      "expertsLabel": "Эксперты",
+      "expertsDescription": "Квалифицированные юристы",
+      "languagesLabel": "Языки",
+      "languagesDescription": "На UZ, RU",
+      "languagesSuffix": " языка"
+    }
+  },
   "features": {
     "title": "Возможности портала",
     "subtitle": "Профессиональная юридическая помощь и консультации",
