@@ -1,11 +1,23 @@
 import { FileText, MessageSquare, Globe, TrendingUp, Award, Shield, Scale } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StatisticsSectionProps {
   variant?: 'strip' | 'grid' | 'cards';
   showTrends?: boolean;
   showBackground?: boolean;
+}
+
+interface Stat {
+  key: string;
+  value: string;
+  suffix?: string;
+  icon: LucideIcon;
+  trend: { value: number; label: string } | null;
+  color: string;
+  label: string;
+  description: string;
 }
 
 // Color mappings
@@ -40,7 +52,7 @@ export async function StatisticsSection({
 }: StatisticsSectionProps) {
   const t = await getTranslations('statisticsSection');
 
-  const statisticsData = [
+  const statisticsData: Stat[] = [
     {
       key: 'totalArticles',
       value: '581',
@@ -167,15 +179,7 @@ export async function StatisticsSection({
 }
 
 // Card Variant Component - CSS animations only
-function StatCard({
-  stat,
-  index,
-  showTrend,
-}: {
-  stat: (typeof statisticsData)[0];
-  index: number;
-  showTrend: boolean;
-}) {
+function StatCard({ stat, index, showTrend }: { stat: Stat; index: number; showTrend: boolean }) {
   const Icon = stat.icon;
   const colors = colorStyles[stat.color];
 
@@ -235,7 +239,7 @@ function StatCard({
 }
 
 // Strip Variant Component
-function StatStrip({ stat, index }: { stat: (typeof statisticsData)[0]; index: number }) {
+function StatStrip({ stat, index }: { stat: Stat; index: number }) {
   const Icon = stat.icon;
   const colors = colorStyles[stat.color];
 
@@ -271,7 +275,7 @@ function StatGridCard({
   index,
   showTrend,
 }: {
-  stat: (typeof statisticsData)[0];
+  stat: Stat;
   index: number;
   showTrend: boolean;
 }) {
