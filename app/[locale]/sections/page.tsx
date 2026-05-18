@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Layers, ChevronRight, FileText, BookOpen, RefreshCw } from 'lucide-react';
 import { Card, Badge, GovVerifiedBadge } from '@/components/ui';
 import { getSections, getLocalizedText } from '@/lib/api';
-import type { Locale } from '@/types';
+import type { Locale, Section } from '@/types';
 
 interface SectionsPageProps {
   params: { locale: string };
@@ -23,13 +23,12 @@ function toSentenceCase(text: string): string {
 export default async function SectionsPage({ params: { locale } }: SectionsPageProps) {
   const t = await getTranslations();
 
-  let sections;
+  let sections: Section[] = [];
   let fetchError = false;
 
   try {
     sections = await getSections(locale as Locale);
   } catch {
-    sections = [];
     fetchError = true;
   }
 
