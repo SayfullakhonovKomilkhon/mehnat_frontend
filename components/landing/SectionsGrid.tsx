@@ -1,5 +1,8 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
 import {
   BookOpen,
   FileText,
@@ -20,6 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getSections, getLocalizedText } from '@/lib/api';
 import type { Section, Locale, LocalizedString } from '@/types';
+import { SectionsSkeleton } from '@/components/skeletons';
 
 interface SectionsGridProps {
   locale: string;
@@ -92,20 +96,38 @@ function sectionToDisplayFormat(section: Section, index: number) {
   };
 }
 
-// Server component - fetches data from API
-// Wrapped in <Suspense> in the parent page, so the skeleton fallback
-// is shown via streaming SSR while we wait for the real data.
-export async function SectionsGrid({ locale, showHeader = true, maxItems }: SectionsGridProps) {
-  const t = await getTranslations();
+// Client component — fetches data on the browser side.
+// This avoids Vercel's 10s serverless timeout when the upstream API is slow
+// (e.g. cold-start on Render). The user sees the skeleton until real data arrives.
+export function SectionsGrid({ locale, showHeader = true, maxItems }: SectionsGridProps) {
+  const t = useTranslations();
+  const [apiSections, setApiSections] = useState<Section[] | null>(null);
+  const [hasError, setHasError] = useState(false);
 
-  let apiSections: Section[] = [];
-  try {
-    apiSections = await getSections(locale as Locale);
-  } catch (error) {
-    console.error('Failed to fetch sections from API:', error);
-  }
+  useEffect(() => {
+    let cancelled = false;
+    setApiSections(null);
+    setHasError(false);
 
-  const sectionsData = apiSections.map((s, i) => sectionToDisplayFormat(s, i));
+    getSections(locale as Locale)
+      .then(data => {
+        if (cancelled) return;
+        setApiSections(data);
+      })
+      .catch(error => {
+        if (cancelled) return;
+        console.error('Failed to fetch sections from API:', error);
+        setHasError(true);
+        setApiSections([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
+
+  const isLoading = apiSections === null;
+  const sectionsData = (apiSections ?? []).map((s, i) => sectionToDisplayFormat(s, i));
   const displayedSections = maxItems ? sectionsData.slice(0, maxItems) : sectionsData;
 
   const getLocalizedTitle = (section: { title?: LocalizedString }) =>
@@ -162,103 +184,114 @@ export async function SectionsGrid({ locale, showHeader = true, maxItems }: Sect
           </div>
         )}
 
-        {/* Empty / Error State */}
-        {displayedSections.length === 0 && (
+        {/* Loading Skeleton — shown until API responds */}
+        {isLoading && <SectionsSkeleton count={maxItems ?? 6} />}
+
+        {/* Empty / Error State — only when load is finished and there is no data */}
+        {!isLoading && displayedSections.length === 0 && (
           <div className="rounded-xl border border-gov-border bg-white py-12 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gov-border/40">
               <AlertTriangle className="h-6 w-6 text-text-muted" />
             </div>
             <p className="text-sm text-text-secondary">
-              {locale === 'ru'
-                ? 'Не удалось загрузить разделы. Попробуйте обновить страницу.'
-                : locale === 'en'
-                  ? 'Failed to load sections. Please refresh the page.'
-                  : "Bo'limlarni yuklab bo'lmadi. Sahifani yangilang."}
+              {hasError
+                ? locale === 'ru'
+                  ? 'Не удалось загрузить разделы. Попробуйте обновить страницу.'
+                  : locale === 'en'
+                    ? 'Failed to load sections. Please refresh the page.'
+                    : "Bo'limlarni yuklab bo'lmadi. Sahifani yangilang."
+                : locale === 'ru'
+                  ? 'Разделы не найдены'
+                  : locale === 'en'
+                    ? 'No sections found'
+                    : "Bo'limlar topilmadi"}
             </p>
           </div>
         )}
 
         {/* Sections Grid - CSS animations */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:gap-6 lg:grid-cols-3">
-          {displayedSections.map((section, index) => {
-            const Icon = iconMap[section.icon] || BookOpen;
-            const colors = colorMap[section.color] || colorMap.blue;
+        {!isLoading && displayedSections.length > 0 && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:gap-6 lg:grid-cols-3">
+            {displayedSections.map((section, index) => {
+              const Icon = iconMap[section.icon] || BookOpen;
+              const colors = colorMap[section.color] || colorMap.blue;
 
-            return (
-              <div
-                key={section.id}
-                className="animate-fadeIn"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <Link href={`/${locale}/sections/${section.id}`}>
-                  <article
-                    className={cn(
-                      'group relative overflow-hidden rounded-lg bg-gov-surface sm:rounded-xl',
-                      'border border-l-4 border-gov-border',
-                      colors.border,
-                      'h-full cursor-pointer',
-                      'card-interactive' // CSS-only hover animation
-                    )}
-                  >
-                    <div className="flex h-full flex-col p-4 sm:p-6">
-                      {/* Header Row */}
-                      <div className="mb-3 flex items-start justify-between sm:mb-4">
-                        {/* Roman Numeral */}
-                        <span className="select-none font-heading text-2xl font-bold text-gov-border sm:text-4xl">
-                          {section.number}
-                        </span>
+              return (
+                <div
+                  key={section.id}
+                  className="animate-fadeIn"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  <Link href={`/${locale}/sections/${section.id}`}>
+                    <article
+                      className={cn(
+                        'group relative overflow-hidden rounded-lg bg-gov-surface sm:rounded-xl',
+                        'border border-l-4 border-gov-border',
+                        colors.border,
+                        'h-full cursor-pointer',
+                        'card-interactive' // CSS-only hover animation
+                      )}
+                    >
+                      <div className="flex h-full flex-col p-4 sm:p-6">
+                        {/* Header Row */}
+                        <div className="mb-3 flex items-start justify-between sm:mb-4">
+                          {/* Roman Numeral */}
+                          <span className="select-none font-heading text-2xl font-bold text-gov-border sm:text-4xl">
+                            {section.number}
+                          </span>
 
-                        {/* Icon */}
-                        <div
-                          className={cn(
-                            'flex h-10 w-10 items-center justify-center rounded-lg sm:h-12 sm:w-12 sm:rounded-xl',
-                            'transition-transform duration-200 group-hover:scale-110',
-                            colors.bg
-                          )}
-                        >
-                          <Icon className={cn('h-5 w-5 sm:h-6 sm:w-6', colors.text)} />
+                          {/* Icon */}
+                          <div
+                            className={cn(
+                              'flex h-10 w-10 items-center justify-center rounded-lg sm:h-12 sm:w-12 sm:rounded-xl',
+                              'transition-transform duration-200 group-hover:scale-110',
+                              colors.bg
+                            )}
+                          >
+                            <Icon className={cn('h-5 w-5 sm:h-6 sm:w-6', colors.text)} />
+                          </div>
+                        </div>
+
+                        {(() => {
+                          const rawTitle = getLocalizedTitle(section) || '';
+                          const rawDesc = getLocalizedDescription(section) || '';
+                          const title = toSentenceCase(rawTitle);
+                          const description =
+                            rawDesc && rawDesc.toLowerCase() !== rawTitle.toLowerCase()
+                              ? toSentenceCase(rawDesc)
+                              : '';
+                          return (
+                            <>
+                              <h3 className="mb-1.5 line-clamp-2 min-h-[3rem] font-heading text-base font-semibold leading-snug text-text-primary transition-colors group-hover:text-primary-700 sm:mb-2 sm:min-h-[3.5rem] sm:text-lg">
+                                {title}
+                              </h3>
+                              <p className="line-clamp-2 min-h-[2.5rem] flex-grow text-xs leading-relaxed text-text-secondary sm:text-sm">
+                                {description || '\u00A0'}
+                              </p>
+                            </>
+                          );
+                        })()}
+
+                        {/* Stats & Arrow - Always at bottom */}
+                        <div className="mt-3 flex items-center justify-between border-t border-gov-border pt-3 sm:mt-4 sm:pt-4">
+                          <span className="text-xs text-text-muted sm:text-sm">
+                            {getCountLabel(section.chaptersCount, section.articlesCount)}
+                          </span>
+                          <div className="text-primary-600 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                          </div>
                         </div>
                       </div>
 
-                      {(() => {
-                        const rawTitle = getLocalizedTitle(section) || '';
-                        const rawDesc = getLocalizedDescription(section) || '';
-                        const title = toSentenceCase(rawTitle);
-                        const description =
-                          rawDesc && rawDesc.toLowerCase() !== rawTitle.toLowerCase()
-                            ? toSentenceCase(rawDesc)
-                            : '';
-                        return (
-                          <>
-                            <h3 className="mb-1.5 line-clamp-2 min-h-[3rem] font-heading text-base font-semibold leading-snug text-text-primary transition-colors group-hover:text-primary-700 sm:mb-2 sm:min-h-[3.5rem] sm:text-lg">
-                              {title}
-                            </h3>
-                            <p className="line-clamp-2 min-h-[2.5rem] flex-grow text-xs leading-relaxed text-text-secondary sm:text-sm">
-                              {description || '\u00A0'}
-                            </p>
-                          </>
-                        );
-                      })()}
-
-                      {/* Stats & Arrow - Always at bottom */}
-                      <div className="mt-3 flex items-center justify-between border-t border-gov-border pt-3 sm:mt-4 sm:pt-4">
-                        <span className="text-xs text-text-muted sm:text-sm">
-                          {getCountLabel(section.chaptersCount, section.articlesCount)}
-                        </span>
-                        <div className="text-primary-600 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                          <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Hover Gradient Overlay */}
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary-50/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                  </article>
-                </Link>
-              </div>
-            );
-          })}
-        </div>
+                      {/* Hover Gradient Overlay */}
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary-50/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                    </article>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* View All Button - Mobile */}
         {showHeader && (
