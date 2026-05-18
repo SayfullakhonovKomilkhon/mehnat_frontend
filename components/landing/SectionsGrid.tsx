@@ -19,144 +19,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSections, getLocalizedText } from '@/lib/api';
-import type { Section, Locale } from '@/types';
+import type { Section, Locale, LocalizedString } from '@/types';
 
 interface SectionsGridProps {
   locale: string;
   showHeader?: boolean;
   maxItems?: number;
 }
-
-// Fallback sections data for when API is unavailable
-const fallbackSectionsData = [
-  {
-    id: 1,
-    number: 'I',
-    title_uz: 'Umumiy qoidalar',
-    title_ru: 'Общие положения',
-    title_en: 'General Provisions',
-    description_uz:
-      "Mehnat qonunchiligining asosiy tamoyillari, maqsadlari va qo'llanilish doirasi",
-    description_ru: 'Основные принципы, цели и сфера применения трудового законодательства',
-    description_en: 'Basic principles, objectives and scope of labor legislation',
-    chaptersCount: 5,
-    articlesCount: 28,
-    icon: 'BookOpen',
-    color: 'blue',
-  },
-  {
-    id: 2,
-    number: 'II',
-    title_uz: 'Mehnat shartnomasi',
-    title_ru: 'Трудовой договор',
-    title_en: 'Employment Contract',
-    description_uz: "Mehnat shartnomasini tuzish, o'zgartirish va bekor qilish tartibi",
-    description_ru: 'Порядок заключения, изменения и расторжения трудового договора',
-    description_en: 'Procedure for concluding, amending and terminating employment contract',
-    chaptersCount: 8,
-    articlesCount: 45,
-    icon: 'FileText',
-    color: 'indigo',
-  },
-  {
-    id: 3,
-    number: 'III',
-    title_uz: 'Ish vaqti',
-    title_ru: 'Рабочее время',
-    title_en: 'Working Hours',
-    description_uz: "Ish vaqti normalari, ish tartibi va qo'shimcha ish vaqti tartibga solish",
-    description_ru: 'Нормы рабочего времени, режим работы и регулирование сверхурочной работы',
-    description_en: 'Working time standards, work schedules and overtime regulation',
-    chaptersCount: 4,
-    articlesCount: 22,
-    icon: 'Clock',
-    color: 'emerald',
-  },
-  {
-    id: 4,
-    number: 'IV',
-    title_uz: 'Dam olish vaqti',
-    title_ru: 'Время отдыха',
-    title_en: 'Rest Time',
-    description_uz: "Tanaffuslar, dam olish kunlari, bayram kunlari va mehnat ta'tillari",
-    description_ru: 'Перерывы, выходные дни, праздничные дни и трудовые отпуска',
-    description_en: 'Breaks, days off, holidays and labor vacations',
-    chaptersCount: 6,
-    articlesCount: 35,
-    icon: 'Coffee',
-    color: 'amber',
-  },
-  {
-    id: 5,
-    number: 'V',
-    title_uz: 'Mehnat haqi',
-    title_ru: 'Оплата труда',
-    title_en: 'Wages',
-    description_uz: "Ish haqi tizimi, minimal ish haqi, mukofotlar va qo'shimcha to'lovlar",
-    description_ru: 'Система оплаты труда, минимальная заработная плата, премии и надбавки',
-    description_en: 'Wage system, minimum wage, bonuses and additional payments',
-    chaptersCount: 4,
-    articlesCount: 30,
-    icon: 'Wallet',
-    color: 'green',
-  },
-  {
-    id: 6,
-    number: 'VI',
-    title_uz: 'Mehnat intizomi',
-    title_ru: 'Трудовая дисциплина',
-    title_en: 'Labor Discipline',
-    description_uz: "Intizomiy javobgarlik, rag'batlantirish va jazolash choralari",
-    description_ru: 'Дисциплинарная ответственность, меры поощрения и взыскания',
-    description_en: 'Disciplinary responsibility, incentives and penalties',
-    chaptersCount: 3,
-    articlesCount: 18,
-    icon: 'Shield',
-    color: 'red',
-  },
-  {
-    id: 7,
-    number: 'VII',
-    title_uz: 'Moddiy javobgarlik',
-    title_ru: 'Материальная ответственность',
-    title_en: 'Material Liability',
-    description_uz: 'Xodim va ish beruvchining moddiy javobgarligi',
-    description_ru: 'Материальная ответственность работника и работодателя',
-    description_en: 'Material liability of employee and employer',
-    chaptersCount: 3,
-    articlesCount: 15,
-    icon: 'Scale',
-    color: 'purple',
-  },
-  {
-    id: 8,
-    number: 'VIII',
-    title_uz: 'Mehnat muhofazasi',
-    title_ru: 'Охрана труда',
-    title_en: 'Labor Protection',
-    description_uz: "Mehnat xavfsizligi va sog'lom mehnat sharoitlarini ta'minlash",
-    description_ru: 'Обеспечение безопасности труда и здоровых условий труда',
-    description_en: 'Ensuring occupational safety and healthy working conditions',
-    chaptersCount: 5,
-    articlesCount: 32,
-    icon: 'Heart',
-    color: 'rose',
-  },
-  {
-    id: 9,
-    number: 'IX',
-    title_uz: 'Ayrim toifadagi xodimlar mehnati',
-    title_ru: 'Труд отдельных категорий работников',
-    title_en: 'Labor of Certain Categories of Workers',
-    description_uz: 'Ayollar, yoshlar va boshqa maxsus toifadagi xodimlar mehnati',
-    description_ru: 'Труд женщин, молодежи и других особых категорий работников',
-    description_en: 'Labor of women, youth and other special categories of workers',
-    chaptersCount: 6,
-    articlesCount: 40,
-    icon: 'Users',
-    color: 'cyan',
-  },
-];
 
 // Icon mapping
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -223,69 +92,27 @@ function sectionToDisplayFormat(section: Section, index: number) {
   };
 }
 
-// Helper: Fetch with timeout to prevent slow backend from blocking page render
-async function fetchWithTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number = 3000
-): Promise<T | null> {
-  return Promise.race([
-    promise,
-    new Promise<null>(resolve => setTimeout(() => resolve(null), timeoutMs)),
-  ]);
-}
-
 // Server component - fetches data from API
+// Wrapped in <Suspense> in the parent page, so the skeleton fallback
+// is shown via streaming SSR while we wait for the real data.
 export async function SectionsGrid({ locale, showHeader = true, maxItems }: SectionsGridProps) {
   const t = await getTranslations();
 
-  // Try to fetch from API with 3 second timeout, fallback to static data
-  let sectionsData: any[] = [];
+  let apiSections: Section[] = [];
   try {
-    const apiSections = await fetchWithTimeout(getSections(locale as Locale), 3000);
-    if (apiSections && apiSections.length > 0) {
-      sectionsData = apiSections.map((s, i) => sectionToDisplayFormat(s, i));
-    } else {
-      // API timeout or empty response - use fallback data
-      sectionsData = fallbackSectionsData;
-    }
+    apiSections = await getSections(locale as Locale);
   } catch (error) {
     console.error('Failed to fetch sections from API:', error);
-    sectionsData = fallbackSectionsData;
   }
 
+  const sectionsData = apiSections.map((s, i) => sectionToDisplayFormat(s, i));
   const displayedSections = maxItems ? sectionsData.slice(0, maxItems) : sectionsData;
 
-  // Get localized title
-  const getLocalizedTitle = (section: any) => {
-    // Handle both API format (LocalizedString) and fallback format
-    if (section.title && typeof section.title === 'object') {
-      return getLocalizedText(section.title, locale);
-    }
-    switch (locale) {
-      case 'ru':
-        return section.title_ru;
-      case 'en':
-        return section.title_en;
-      default:
-        return section.title_uz;
-    }
-  };
+  const getLocalizedTitle = (section: { title?: LocalizedString }) =>
+    section.title ? getLocalizedText(section.title, locale) : '';
 
-  // Get localized description
-  const getLocalizedDescription = (section: any) => {
-    // Handle both API format (LocalizedString) and fallback format
-    if (section.description && typeof section.description === 'object') {
-      return getLocalizedText(section.description, locale);
-    }
-    switch (locale) {
-      case 'ru':
-        return section.description_ru;
-      case 'en':
-        return section.description_en;
-      default:
-        return section.description_uz;
-    }
-  };
+  const getLocalizedDescription = (section: { description?: LocalizedString }) =>
+    section.description ? getLocalizedText(section.description, locale) : '';
 
   // Get chapter/article label based on locale
   const getCountLabel = (chapters: number, articles: number) => {
@@ -332,6 +159,22 @@ export async function SectionsGrid({ locale, showHeader = true, maxItems }: Sect
               {t('common.viewAll')}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
+          </div>
+        )}
+
+        {/* Empty / Error State */}
+        {displayedSections.length === 0 && (
+          <div className="rounded-xl border border-gov-border bg-white py-12 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gov-border/40">
+              <AlertTriangle className="h-6 w-6 text-text-muted" />
+            </div>
+            <p className="text-sm text-text-secondary">
+              {locale === 'ru'
+                ? 'Не удалось загрузить разделы. Попробуйте обновить страницу.'
+                : locale === 'en'
+                  ? 'Failed to load sections. Please refresh the page.'
+                  : "Bo'limlarni yuklab bo'lmadi. Sahifani yangilang."}
+            </p>
           </div>
         )}
 
