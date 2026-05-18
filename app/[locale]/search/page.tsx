@@ -18,7 +18,7 @@ interface SearchPageProps {
 
 interface DisplayResult {
   id: number;
-  type: 'article' | 'section' | 'chapter';
+  type: 'article' | 'section' | 'chapter' | 'comment';
   title: string;
   excerpt: string;
   breadcrumb: string;
